@@ -1,0 +1,98 @@
+//Smart Dustbin (ESP8266)
+
+#define BLYNK_PRINT Serial
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+BlynkTimer timer;
+
+#define outeco D3 	//out ultrasonic sensor(to open the door of dustbin)
+#define outtri D2	//D2 is an PWM pin
+
+
+#define ineco D4	//in ultrasonic sensor(to detect whether the dustbin is full or not)
+#define intri D5	//D5 is an PWM pin
+
+#include <Servo.h>
+Servo myservo;
+
+float  induration; 	// time taken by the pulse to return back
+float  indistance; 	// oneway distance travelled by the pulse
+
+float  outduration; 	// time taken by the pulse to return back
+float  outdistance; 	// oneway distance travelled by the pulse
+
+
+							//parameters given for example...
+char auth[] = "6ced08cd273148a4a81162544bcc3b26"; 	//Auth code sent via Email
+char ssid[] = "Hacked"; 				//Wifi name
+char pass[] = "0123456789";  				//Wifi Password
+
+int flag=0;
+int pos = 0;    					// variable to store the servo position
+
+void setup()
+{
+Serial.begin(9600);
+Blynk.begin(auth, ssid, pass);
+
+pinMode(outtri, OUTPUT);
+pinMode(outeco, INPUT);
+
+pinMode(intri, OUTPUT);
+pinMode(ineco, INPUT);
+
+myservo.attach(D6);  				// attaches the servo on pin D6 to the servo object
+
+timer.setInterval(1000L,notifyOnFire); 
+}
+
+void loop()
+{
+Blynk.run();
+timer.run();
+}
+
+void time_Measurement()
+  	{ //function to measure the time taken by the pulse to return back
+    	
+	digitalWrite(trig, LOW);
+    	delayMicroseconds(2);
+  
+    	digitalWrite(trig, HIGH);
+    	delayMicroseconds(10);
+    	digitalWrite(trig, LOW);
+  
+    	duration = pulseIn(echo, HIGH);
+  	}
+
+void notifyOnFULL()
+{
+int servo_1_pos;
+time_Measurementin();
+indistance = induration * (0.0343) / 2;		// calculate the oneway distance travelled by the pulse   
+
+time_Measurementout();
+outdistance = outduration * (0.0343) / 2;	// calculate the oneway distance travelled by the pulse   
+
+if(indistance <=50 && flag==0){
+	Serial.println("Dustbin is FULL");
+    	Blynk.notify("Alert : Dustbin is FULL");
+    	flag=1;}
+if (indistance >50)
+  {
+    flag=0;
+  }
+
+if(outdistance<=100){
+	for (pos = 0; pos <= 180; pos += 1) { 	// goes from 0 degrees to 180 degrees
+    						// in steps of 1 degree
+    	myservo.write(pos);              	// tell servo to go to position in variable 'pos'
+    	delay(1000);                       	// wait for the servo to reach the position
+  	}
+	for (pos = 180; pos >= 0; pos -= 1) { 	// goes from 180 degrees to 0 degrees
+    	myservo.write(pos);              	// tell servo to go to position in variable 'pos'
+    	delay(15);                       	// wait for the servo to reach the position
+  	}
+
+}
+
